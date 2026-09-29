@@ -1,0 +1,299 @@
+
+#include <iostream>
+#include <string>
+using namespace std;
+
+int main() {
+
+    // ==========================================
+    // DS CO1: ARRAYS
+    // BUILDING, FLOOR AND ROOM DATA
+    // ==========================================
+
+    const int B = 4;
+    const int F = 3;
+    const int R = 5;
+
+    string buildings[B] = {
+        "Block A", "Block B", "Block C", "Block D"
+    };
+
+    string floors[B][F] = {
+        {"Ground Floor", "1st Floor", "2nd Floor"},
+        {"Ground Floor", "1st Floor", "2nd Floor"},
+        {"Ground Floor", "1st Floor", "2nd Floor"},
+        {"Ground Floor", "1st Floor", "2nd Floor"}
+    };
+
+    string rooms[B][F][R] = {
+        {
+            {"A001", "A002", "A003", "A004", "A005"},
+            {"A101", "A102", "A103", "A104", "A105"},
+            {"A201", "A202", "A203", "A204", "A205"}
+        },
+        {
+            {"B001", "B002", "B003", "B004", "B005"},
+            {"B101", "B102", "B103", "B104", "B105"},
+            {"B201", "B202", "B203", "B204", "B205"}
+        },
+        {
+            {"C001", "C002", "C003", "C004", "C005"},
+            {"C101", "C102", "C103", "C104", "C105"},
+            {"C201", "C202", "C203", "C204", "C205"}
+        },
+        {
+            {"D001", "D002", "D003", "D004", "D005"},
+            {"D101", "D102", "D103", "D104", "D105"},
+            {"D201", "D202", "D203", "D204", "D205"}
+        }
+    };
+
+
+    // ==========================================
+    // DS CO1: FACULTY ARRAYS
+    // ==========================================
+
+    const int N = 8;
+    const int S = 3;
+
+    string faculty[N] = {
+        "Prof. Sharma",
+        "Prof. Patil",
+        "Prof. Deshmukh",
+        "Prof. Kulkarni",
+        "Prof. Joshi",
+        "Prof. Mehta",
+        "Prof. Shah",
+        "Prof. Verma"
+    };
+
+    string facultyTime[N][S] = {
+        {"9-10 AM", "11 AM-12 PM", "2-3 PM"},
+        {"10-11 AM", "1-2 PM", "3-4 PM"},
+        {"9-10 AM", "12-1 PM", "2-3 PM"},
+        {"10-11 AM", "11 AM-12 PM", "3-4 PM"},
+        {"9-10 AM", "1-2 PM", "4-5 PM"},
+        {"11 AM-12 PM", "2-3 PM", "3-4 PM"},
+        {"10-11 AM", "12-1 PM", "4-5 PM"},
+        {"9-10 AM", "11 AM-12 PM", "1-2 PM"}
+    };
+
+    string facultyBuilding[N][S] = {
+        {"Block A", "Block A", "Block A"},
+        {"Block B", "Block B", "Block B"},
+        {"Block C", "Block C", "Block C"},
+        {"Block A", "Block A", "Block B"},
+        {"Block D", "Block D", "Block D"},
+        {"Block B", "Block C", "Block C"},
+        {"Block C", "Block A", "Block A"},
+        {"Block D", "Block B", "Block D"}
+    };
+
+    string facultyRoom[N][S] = {
+        {"A201", "A202", "A203"},
+        {"B101", "B202", "B203"},
+        {"C101", "C201", "C202"},
+        {"A102", "A103", "B201"},
+        {"D101", "D201", "D202"},
+        {"B102", "C102", "C203"},
+        {"C202", "A104", "A205"},
+        {"D102", "B204", "D203"}
+    };
+
+
+    // ==========================================
+    // MENU
+    // ==========================================
+
+    int choice;
+
+    do {
+
+        cout << "\n====================================\n";
+        cout << "       SMART CAMPUS NAVIGATOR\n";
+        cout << "====================================\n";
+
+        cout << "1. View Buildings and Rooms\n";
+        cout << "2. Search Room\n";
+        cout << "3. Search Faculty\n";
+        cout << "4. View All Faculty\n";
+        cout << "5. Exit\n";
+
+        cout << "\nEnter choice: ";
+        cin >> choice;
+
+
+        // ==========================================
+        // OPTION 1: VIEW BUILDINGS AND ROOMS
+        // ==========================================
+
+        if (choice == 1) {
+
+            string searchBuilding;
+            bool found = false;
+
+            cout << "\nEnter Building Name (Block A/B/C/D): ";
+            cin.ignore();
+            getline(cin, searchBuilding);
+
+            for (int i = 0; i < B; i++) {
+
+                if (buildings[i] == searchBuilding) {
+
+                    found = true;
+
+                    cout << "\nBuilding: " << buildings[i] << endl;
+
+                    for (int j = 0; j < F; j++) {
+
+                        cout << "\nFloor: " << floors[i][j] << endl;
+
+                        cout << "Rooms: ";
+
+                        for (int k = 0; k < R; k++) {
+                            cout << rooms[i][j][k] << " ";
+                        }
+
+                        cout << endl;
+                    }
+                }
+            }
+
+            if (!found) {
+                cout << "\nBuilding not found!\n";
+            }
+        }
+
+
+        // ==========================================
+        // OPTION 2: SEARCH ROOM
+        // ==========================================
+
+        else if (choice == 2) {
+
+            string searchRoom;
+            bool found = false;
+
+            cout << "\nEnter Room Number: ";
+            cin >> searchRoom;
+
+            for (int i = 0; i < B; i++) {
+
+                for (int j = 0; j < F; j++) {
+
+                    for (int k = 0; k < R; k++) {
+
+                        if (rooms[i][j][k] == searchRoom) {
+
+                            found = true;
+
+                            cout << "\n===== ROOM DETAILS =====\n";
+
+                            cout << "Room Number: "
+                                 << rooms[i][j][k] << endl;
+
+                            cout << "Building: "
+                                 << buildings[i] << endl;
+
+                            cout << "Floor: "
+                                 << floors[i][j] << endl;
+                        }
+                    }
+                }
+            }
+
+            if (!found) {
+                cout << "\nRoom not found!\n";
+            }
+        }
+
+
+        // ==========================================
+        // OPTION 3: SEARCH FACULTY
+        // ==========================================
+
+        else if (choice == 3) {
+
+            string searchFaculty;
+            bool found = false;
+
+            cout << "\nEnter Faculty Name: ";
+            cin.ignore();
+            getline(cin, searchFaculty);
+
+            for (int i = 0; i < N; i++) {
+
+                if (faculty[i] == searchFaculty) {
+
+                    found = true;
+
+                    cout << "\n===== FACULTY DETAILS =====\n";
+
+                    cout << "Faculty Name: "
+                         << faculty[i] << endl;
+
+                    for (int j = 0; j < S; j++) {
+
+                        cout << "\nAvailable Time: "
+                             << facultyTime[i][j] << endl;
+
+                        cout << "Building: "
+                             << facultyBuilding[i][j] << endl;
+
+                        cout << "Room: "
+                             << facultyRoom[i][j] << endl;
+                    }
+                }
+            }
+
+            if (!found) {
+                cout << "\nFaculty not found!\n";
+            }
+        }
+
+
+        // ==========================================
+        // OPTION 4: VIEW ALL FACULTY
+        // ==========================================
+
+        else if (choice == 4) {
+
+            cout << "\n===== ALL FACULTY DETAILS =====\n";
+
+            for (int i = 0; i < N; i++) {
+
+                cout << "\nFaculty: " << faculty[i] << endl;
+
+                for (int j = 0; j < S; j++) {
+
+                    cout << "Time: "
+                         << facultyTime[i][j] << endl;
+
+                    cout << "Location: "
+                         << facultyBuilding[i][j] << ", "
+                         << facultyRoom[i][j] << endl;
+                }
+
+                cout << "-----------------------------\n";
+            }
+        }
+
+
+        // ==========================================
+        // OPTION 5: EXIT
+        // ==========================================
+
+        else if (choice == 5) {
+
+            cout << "\nThank you for using Smart Campus Navigator!\n";
+        }
+
+        else {
+
+            cout << "\nInvalid choice! Please enter 1 to 5.\n";
+        }
+
+    } while (choice != 5);
+
+    return 0;
+}
