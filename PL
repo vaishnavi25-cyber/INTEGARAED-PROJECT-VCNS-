@@ -1,0 +1,1136 @@
+#include <iostream>
+#include <string>
+#include <limits>
+#include <queue>
+#include <algorithm>
+#include <cctype>
+
+using namespace std;
+
+// =====================================================
+// SMART CAMPUS NAVIGATOR
+// ARRAY + LINKED LIST + BFS
+// C++17
+// =====================================================
+
+const int MAX_BUILDINGS = 20;
+const int FLOORS = 3;
+const int ROOMS = 5;
+const int MAX_FACULTY = 30;
+const int MAX_NODES = 400;
+
+// =====================================================
+// CO1: BUILDING AND ROOM ARRAY
+// =====================================================
+
+struct Building
+{
+    string name;
+    string code;
+    string floor[FLOORS];
+    string room[FLOORS][ROOMS];
+    bool active;
+};
+
+Building buildings[MAX_BUILDINGS];
+int buildingCount = 0;
+
+// =====================================================
+// SPECIAL CAMPUS LOCATIONS
+// =====================================================
+
+string specialPlaces[] =
+{
+    "Campus Gate",
+    "Main Parking",
+    "Sports Ground",
+    "Auditorium 1",
+    "Auditorium 2",
+    "Elite Canteen",
+    "Shriraj Canteen",
+    "Library",
+    "Admin Office",
+    "Security Office",
+    "Medical Center",
+    "Student Activity Center"
+};
+
+const int SPECIAL_COUNT =
+    sizeof(specialPlaces) / sizeof(specialPlaces[0]);
+
+// =====================================================
+// FACULTY ARRAY
+// =====================================================
+
+struct Faculty
+{
+    string name;
+    string room[3];
+    string time[3];
+    bool active;
+};
+
+Faculty faculty[MAX_FACULTY];
+int facultyCount = 0;
+
+// =====================================================
+// UTILITY FUNCTIONS
+// =====================================================
+
+string toLowerCase(string s)
+{
+    for (int i = 0; i < (int)s.length(); i++)
+    {
+        s[i] = (char)tolower((unsigned char)s[i]);
+    }
+
+    return s;
+}
+
+string inputLine(string message)
+{
+    string value;
+
+    cout << message;
+    getline(cin >> ws, value);
+
+    return value;
+}
+
+// =====================================================
+// BUILDING INITIALIZATION
+// =====================================================
+
+void initializeBuilding(int index, string name, string code)
+{
+    buildings[index].name = name;
+    buildings[index].code = code;
+    buildings[index].active = true;
+
+    for (int f = 0; f < FLOORS; f++)
+    {
+        if (f == 0)
+            buildings[index].floor[f] = "Ground Floor";
+        else if (f == 1)
+            buildings[index].floor[f] = "1st Floor";
+        else
+            buildings[index].floor[f] = "2nd Floor";
+
+        for (int r = 0; r < ROOMS; r++)
+        {
+            buildings[index].room[f][r] =
+                code + to_string(f) + "0" + to_string(r + 1);
+        }
+    }
+}
+
+int findBuildingIndex(string name)
+{
+    for (int i = 0; i < MAX_BUILDINGS; i++)
+    {
+        if (buildings[i].active &&
+            toLowerCase(buildings[i].name) == toLowerCase(name))
+        {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+bool findRoomDetails(string room, int &b, int &f, int &r)
+{
+    for (int i = 0; i < MAX_BUILDINGS; i++)
+    {
+        if (!buildings[i].active)
+            continue;
+
+        for (int j = 0; j < FLOORS; j++)
+        {
+            for (int k = 0; k < ROOMS; k++)
+            {
+                if (toLowerCase(buildings[i].room[j][k]) ==
+                    toLowerCase(room))
+                {
+                    b = i;
+                    f = j;
+                    r = k;
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+void initializeCampusArray()
+{
+    initializeBuilding(0, "Block A", "A");
+    initializeBuilding(1, "Block B", "B");
+    initializeBuilding(2, "Block C", "C");
+    initializeBuilding(3, "Block D", "D");
+    initializeBuilding(4, "Block E", "E");
+    initializeBuilding(5, "Block F", "F");
+    initializeBuilding(6, "Block H", "H");
+    initializeBuilding(7, "Design Building", "DSG");
+
+    buildingCount = 8;
+}
+
+// =====================================================
+// CO2: LINKED LIST GRAPH
+// =====================================================
+
+struct Edge
+{
+    int destination;
+    int distance;
+    Edge* next;
+};
+
+struct GraphNode
+{
+    string name;
+    Edge* head;
+};
+
+GraphNode graph[MAX_NODES];
+int nodeCount = 0;
+
+// =====================================================
+// GRAPH NODE OPERATIONS
+// =====================================================
+
+int findNode(string name)
+{
+    for (int i = 0; i < nodeCount; i++)
+    {
+        if (toLowerCase(graph[i].name) == toLowerCase(name))
+            return i;
+    }
+
+    return -1;
+}
+
+int addNode(string name)
+{
+    int existing = findNode(name);
+
+    if (existing != -1)
+        return existing;
+
+    if (nodeCount >= MAX_NODES)
+        return -1;
+
+    graph[nodeCount].name = name;
+    graph[nodeCount].head = nullptr;
+
+    nodeCount++;
+
+    return nodeCount - 1;
+}
+
+void addDirectedEdge(int from, int to, int distance)
+{
+    if (from < 0 || to < 0)
+        return;
+
+    Edge* current = graph[from].head;
+
+    while (current != nullptr)
+    {
+        if (current->destination == to)
+        {
+            current->distance = distance;
+            return;
+        }
+
+        current = current->next;
+    }
+
+    Edge* newEdge = new Edge;
+
+    newEdge->destination = to;
+    newEdge->distance = distance;
+    newEdge->next = graph[from].head;
+
+    graph[from].head = newEdge;
+}
+
+void connectPlaces(string a, string b, int distance)
+{
+    int first = addNode(a);
+    int second = addNode(b);
+
+    if (first == -1 || second == -1)
+        return;
+
+    addDirectedEdge(first, second, distance);
+    addDirectedEdge(second, first, distance);
+}
+
+// =====================================================
+// ADD BUILDING AND ROOM NODES
+// =====================================================
+
+void addBuildingGraph(int index)
+{
+    if (!buildings[index].active)
+        return;
+
+    string buildingName = buildings[index].name;
+
+    addNode(buildingName);
+
+    for (int f = 0; f < FLOORS; f++)
+    {
+        for (int r = 0; r < ROOMS; r++)
+        {
+            string roomName = buildings[index].room[f][r];
+
+            addNode(roomName);
+
+            // Building to room connection
+            connectPlaces(buildingName, roomName, 5);
+        }
+    }
+}
+
+// =====================================================
+// CAMPUS GRAPH INITIALIZATION
+// =====================================================
+
+void createCampusGraph()
+{
+    for (int i = 0; i < MAX_BUILDINGS; i++)
+    {
+        if (buildings[i].active)
+            addBuildingGraph(i);
+    }
+
+    for (int i = 0; i < SPECIAL_COUNT; i++)
+    {
+        addNode(specialPlaces[i]);
+    }
+
+    // Campus Gate
+    connectPlaces("Campus Gate", "Block A", 45);
+    connectPlaces("Campus Gate", "Block B", 60);
+    connectPlaces("Campus Gate", "Main Parking", 25);
+
+    // Academic blocks
+    connectPlaces("Block A", "Block B", 35);
+    connectPlaces("Block A", "Block C", 50);
+    connectPlaces("Block B", "Block C", 30);
+    connectPlaces("Block B", "Block D", 45);
+    connectPlaces("Block C", "Block D", 25);
+
+    // Additional blocks
+    connectPlaces("Block C", "Block E", 35);
+    connectPlaces("Block D", "Block E", 30);
+    connectPlaces("Block E", "Block F", 28);
+    connectPlaces("Block F", "Block H", 35);
+    connectPlaces("Block D", "Block H", 55);
+
+    // Design Building
+    connectPlaces("Block H", "Design Building", 30);
+    connectPlaces("Block F", "Design Building", 40);
+
+    // Facilities
+    connectPlaces("Block B", "Library", 20);
+    connectPlaces("Block A", "Admin Office", 18);
+    connectPlaces("Block A", "Security Office", 15);
+    connectPlaces("Block B", "Medical Center", 25);
+    connectPlaces("Block C", "Student Activity Center", 20);
+
+    // Auditoriums
+    connectPlaces("Block D", "Auditorium 1", 25);
+    connectPlaces("Block E", "Auditorium 2", 30);
+
+    // Canteens and sports
+    connectPlaces("Block C", "Elite Canteen", 20);
+    connectPlaces("Block E", "Shriraj Canteen", 25);
+    connectPlaces("Block F", "Sports Ground", 35);
+
+    // Parking
+    connectPlaces("Main Parking", "Block C", 40);
+}
+
+// =====================================================
+// CLEAR GRAPH MEMORY
+// =====================================================
+
+void clearGraph()
+{
+    for (int i = 0; i < nodeCount; i++)
+    {
+        Edge* current = graph[i].head;
+
+        while (current != nullptr)
+        {
+            Edge* temp = current;
+            current = current->next;
+
+            delete temp;
+        }
+
+        graph[i].head = nullptr;
+    }
+
+    nodeCount = 0;
+}
+
+void rebuildCampusGraph()
+{
+    clearGraph();
+    createCampusGraph();
+}
+
+// =====================================================
+// DISPLAY BUILDINGS
+// =====================================================
+
+void displayBuildings()
+{
+    cout << "\n===== CAMPUS BUILDINGS =====\n";
+
+    for (int i = 0; i < MAX_BUILDINGS; i++)
+    {
+        if (!buildings[i].active)
+            continue;
+
+        cout << "\n" << buildings[i].name << "\n";
+
+        for (int f = 0; f < FLOORS; f++)
+        {
+            cout << buildings[i].floor[f] << ": ";
+
+            for (int r = 0; r < ROOMS; r++)
+            {
+                cout << buildings[i].room[f][r] << " ";
+            }
+
+            cout << "\n";
+        }
+    }
+
+    cout << "\n===== OTHER CAMPUS LOCATIONS =====\n";
+
+    for (int i = 0; i < SPECIAL_COUNT; i++)
+        cout << specialPlaces[i] << "\n";
+}
+
+// =====================================================
+// SEARCH ROOM
+// =====================================================
+
+void searchRoom()
+{
+    string room = inputLine("Enter room number: ");
+
+    int b, f, r;
+
+    if (findRoomDetails(room, b, f, r))
+    {
+        cout << "\nRoom: " << buildings[b].room[f][r];
+        cout << "\nBuilding: " << buildings[b].name;
+        cout << "\nFloor: " << buildings[b].floor[f] << "\n";
+    }
+    else
+    {
+        cout << "\nRoom not found.\n";
+    }
+}
+
+// =====================================================
+// UPDATE BUILDING
+// =====================================================
+
+void updateBuilding()
+{
+    string oldName = inputLine("Enter building name: ");
+
+    int index = findBuildingIndex(oldName);
+
+    if (index == -1)
+    {
+        cout << "Building not found.\n";
+        return;
+    }
+
+    string newName = inputLine("Enter new building name: ");
+
+    if (newName.empty() || findBuildingIndex(newName) != -1)
+    {
+        cout << "Invalid or duplicate building name.\n";
+        return;
+    }
+
+    buildings[index].name = newName;
+
+    rebuildCampusGraph();
+
+    cout << "Building updated.\n";
+}
+
+// =====================================================
+// UPDATE ROOM
+// =====================================================
+
+void updateRoom()
+{
+    string oldRoom = inputLine("Enter existing room number: ");
+
+    int b, f, r;
+
+    if (!findRoomDetails(oldRoom, b, f, r))
+    {
+        cout << "Room not found.\n";
+        return;
+    }
+
+    string newRoom = inputLine("Enter new room number: ");
+
+    int tb, tf, tr;
+
+    if (newRoom.empty() || findRoomDetails(newRoom, tb, tf, tr))
+    {
+        cout << "Invalid or duplicate room.\n";
+        return;
+    }
+
+    buildings[b].room[f][r] = newRoom;
+
+    rebuildCampusGraph();
+
+    cout << "Room updated.\n";
+}
+
+// =====================================================
+// INSERT BUILDING
+// =====================================================
+
+void insertBuilding()
+{
+    if (buildingCount >= MAX_BUILDINGS)
+    {
+        cout << "Building array is full.\n";
+        return;
+    }
+
+    string name = inputLine("Enter building name: ");
+    string code = inputLine("Enter building code: ");
+
+    if (name.empty() || code.empty() ||
+        findBuildingIndex(name) != -1)
+    {
+        cout << "Invalid or duplicate building.\n";
+        return;
+    }
+
+    for (int i = 0; i < MAX_BUILDINGS; i++)
+    {
+        if (buildings[i].active &&
+            toLowerCase(buildings[i].code) == toLowerCase(code))
+        {
+            cout << "Building code already exists.\n";
+            return;
+        }
+    }
+
+    int index = -1;
+
+    for (int i = 0; i < MAX_BUILDINGS; i++)
+    {
+        if (!buildings[i].active)
+        {
+            index = i;
+            break;
+        }
+    }
+
+    if (index == -1)
+    {
+        cout << "No free building slot.\n";
+        return;
+    }
+
+    initializeBuilding(index, name, code);
+    buildingCount++;
+
+    rebuildCampusGraph();
+
+    cout << "Building and rooms inserted.\n";
+}
+
+// =====================================================
+// DELETE BUILDING
+// =====================================================
+
+void deleteBuilding()
+{
+    string name = inputLine("Enter building name to delete: ");
+
+    int index = findBuildingIndex(name);
+
+    if (index == -1)
+    {
+        cout << "Building not found.\n";
+        return;
+    }
+
+    for (int i = 0; i < facultyCount; i++)
+    {
+        if (!faculty[i].active)
+            continue;
+
+        for (int j = 0; j < 3; j++)
+        {
+            int b, f, r;
+
+            if (findRoomDetails(faculty[i].room[j], b, f, r)
+                && b == index)
+            {
+                cout << "Cannot delete: faculty is assigned here.\n";
+                return;
+            }
+        }
+    }
+
+    buildings[index].active = false;
+    buildingCount--;
+
+    rebuildCampusGraph();
+
+    cout << "Building deleted.\n";
+}
+
+// =====================================================
+// DISPLAY CAMPUS PLACES
+// =====================================================
+
+void displayAllCampusPlaces()
+{
+    displayBuildings();
+}
+
+// =====================================================
+// FACULTY MANAGEMENT
+// =====================================================
+
+void insertFaculty()
+{
+    if (facultyCount >= MAX_FACULTY)
+    {
+        cout << "Faculty array is full.\n";
+        return;
+    }
+
+    int index = -1;
+
+    for (int i = 0; i < MAX_FACULTY; i++)
+    {
+        if (!faculty[i].active)
+        {
+            index = i;
+            break;
+        }
+    }
+
+    if (index == -1)
+    {
+        cout << "No free faculty slot.\n";
+        return;
+    }
+
+    faculty[index].name = inputLine("Faculty name: ");
+
+    for (int j = 0; j < 3; j++)
+    {
+        faculty[index].room[j] =
+            inputLine("Enter room for slot " + to_string(j + 1) + ": ");
+
+        faculty[index].time[j] =
+            inputLine("Enter time: ");
+    }
+
+    faculty[index].active = true;
+    facultyCount++;
+
+    cout << "Faculty inserted.\n";
+}
+
+void searchFaculty()
+{
+    string name = inputLine("Enter faculty name: ");
+
+    for (int i = 0; i < MAX_FACULTY; i++)
+    {
+        if (faculty[i].active &&
+            toLowerCase(faculty[i].name) == toLowerCase(name))
+        {
+            cout << "\nFaculty: " << faculty[i].name << "\n";
+
+            for (int j = 0; j < 3; j++)
+            {
+                cout << faculty[i].time[j]
+                     << " - " << faculty[i].room[j] << "\n";
+            }
+
+            return;
+        }
+    }
+
+    cout << "Faculty not found.\n";
+}
+
+void displayAllFaculty()
+{
+    cout << "\n===== FACULTY LIST =====\n";
+
+    for (int i = 0; i < MAX_FACULTY; i++)
+    {
+        if (faculty[i].active)
+            cout << faculty[i].name << "\n";
+    }
+}
+
+void updateFaculty()
+{
+    string name = inputLine("Enter faculty name: ");
+
+    for (int i = 0; i < MAX_FACULTY; i++)
+    {
+        if (faculty[i].active &&
+            toLowerCase(faculty[i].name) == toLowerCase(name))
+        {
+            faculty[i].name = inputLine("Enter new name: ");
+
+            for (int j = 0; j < 3; j++)
+            {
+                faculty[i].room[j] =
+                    inputLine("Enter new room: ");
+
+                faculty[i].time[j] =
+                    inputLine("Enter new time: ");
+            }
+
+            cout << "Faculty updated.\n";
+            return;
+        }
+    }
+
+    cout << "Faculty not found.\n";
+}
+
+void deleteFaculty()
+{
+    string name = inputLine("Enter faculty name to delete: ");
+
+    for (int i = 0; i < MAX_FACULTY; i++)
+    {
+        if (faculty[i].active &&
+            toLowerCase(faculty[i].name) == toLowerCase(name))
+        {
+            faculty[i].active = false;
+            facultyCount--;
+
+            cout << "Faculty deleted.\n";
+            return;
+        }
+    }
+
+    cout << "Faculty not found.\n";
+}
+
+// =====================================================
+// LINKED LIST CONNECTION DISPLAY
+// =====================================================
+
+void displayLinkedList()
+{
+    cout << "\n===== LINKED LIST GRAPH =====\n";
+
+    for (int i = 0; i < nodeCount; i++)
+    {
+        cout << graph[i].name << " -> ";
+
+        Edge* current = graph[i].head;
+
+        while (current != nullptr)
+        {
+            cout << graph[current->destination].name
+                 << "(" << current->distance << "m) -> ";
+
+            current = current->next;
+        }
+
+        cout << "NULL\n";
+    }
+}
+
+// =====================================================
+// BFS SHORTEST PATH
+// =====================================================
+
+void shortestRoute()
+{
+    string start = inputLine("Enter starting location: ");
+    string destination = inputLine("Enter destination: ");
+
+    int source = findNode(start);
+    int target = findNode(destination);
+
+    if (source == -1 || target == -1)
+    {
+        cout << "Location not found.\n";
+        return;
+    }
+
+    int parent[MAX_NODES];
+    bool visited[MAX_NODES] = {};
+
+    for (int i = 0; i < MAX_NODES; i++)
+        parent[i] = -1;
+
+    queue<int> q;
+
+    q.push(source);
+    visited[source] = true;
+
+    while (!q.empty())
+    {
+        int current = q.front();
+        q.pop();
+
+        if (current == target)
+            break;
+
+        Edge* edge = graph[current].head;
+
+        while (edge != nullptr)
+        {
+            int next = edge->destination;
+
+            if (!visited[next])
+            {
+                visited[next] = true;
+                parent[next] = current;
+                q.push(next);
+            }
+
+            edge = edge->next;
+        }
+    }
+
+    if (!visited[target])
+    {
+        cout << "No route available.\n";
+        return;
+    }
+
+    int path[MAX_NODES];
+    int length = 0;
+
+    for (int current = target;
+         current != -1;
+         current = parent[current])
+    {
+        path[length++] = current;
+    }
+
+    reverse(path, path + length);
+
+    int totalDistance = 0;
+
+    cout << "\n===== ROUTE =====\n";
+
+    for (int i = 0; i < length; i++)
+    {
+        cout << graph[path[i]].name;
+
+        if (i < length - 1)
+        {
+            int next = path[i + 1];
+
+            Edge* edge = graph[path[i]].head;
+
+            while (edge != nullptr)
+            {
+                if (edge->destination == next)
+                {
+                    totalDistance += edge->distance;
+                    break;
+                }
+
+                edge = edge->next;
+            }
+
+            cout << " -> ";
+        }
+    }
+
+    cout << "\nDistance: " << totalDistance << " metres\n";
+
+    // Assumed walking speed: 1.2 metres per second
+    int seconds = totalDistance / 1.2;
+
+    cout << "Estimated walking time: "
+         << seconds / 60 << " minutes "
+         << seconds % 60 << " seconds\n";
+}
+
+// =====================================================
+// BUILDING TO BUILDING
+// =====================================================
+
+void buildingToBuilding()
+{
+    shortestRoute();
+}
+
+void roomToRoom()
+{
+    shortestRoute();
+}
+
+void roomToBuilding()
+{
+    shortestRoute();
+}
+
+void buildingToRoom()
+{
+    shortestRoute();
+}
+
+void routeMenu()
+{
+    shortestRoute();
+}
+
+void facultyRoute()
+{
+    string name = inputLine("Enter faculty name: ");
+
+    for (int i = 0; i < MAX_FACULTY; i++)
+    {
+        if (faculty[i].active &&
+            toLowerCase(faculty[i].name) == toLowerCase(name))
+        {
+            string room = faculty[i].room[0];
+
+            cout << "Route to faculty's first listed room:\n";
+
+            string start = inputLine("Enter starting location: ");
+
+            int source = findNode(start);
+            int target = findNode(room);
+
+            if (source == -1 || target == -1)
+            {
+                cout << "Location or faculty room not found.\n";
+                return;
+            }
+
+            shortestRoute();
+            return;
+        }
+    }
+
+    cout << "Faculty not found.\n";
+}
+
+// =====================================================
+// MAIN MENU
+// =====================================================
+
+int main()
+{
+    initializeCampusArray();
+
+    // Initialize faculty data
+    string facultyNames[] =
+    {
+        "Sharma", "Patil", "Deshmukh", "Kulkarni",
+        "Joshi", "Mehta", "Shah", "Verma",
+        "Desai", "Pawar", "Jadhav", "Bhosale"
+    };
+
+    string facultyRooms[12][3] =
+    {
+        {"A201", "A202", "A203"},
+        {"B101", "B202", "B203"},
+        {"C101", "C201", "C202"},
+        {"A102", "A103", "B201"},
+        {"D101", "D201", "D202"},
+        {"B102", "C102", "C203"},
+        {"C202", "A104", "A205"},
+        {"D102", "B204", "D203"},
+        {"E101", "E201", "E202"},
+        {"F102", "F201", "F203"},
+        {"H103", "H202", "H204"},
+        {"DSG101", "DSG202", "DSG203"}
+    };
+
+    string facultyTimes[12][3] =
+    {
+        {"9-10", "11-12", "2-3"},
+        {"10-11", "1-2", "3-4"},
+        {"9-10", "12-1", "2-3"},
+        {"10-11", "11-12", "3-4"},
+        {"9-10", "1-2", "4-5"},
+        {"11-12", "2-3", "3-4"},
+        {"10-11", "12-1", "4-5"},
+        {"9-10", "11-12", "1-2"},
+        {"9-10", "12-1", "3-4"},
+        {"10-11", "1-2", "4-5"},
+        {"9-10", "11-12", "2-3"},
+        {"10-11", "2-3", "4-5"}
+    };
+
+    for (int i = 0; i < 12; i++)
+    {
+        faculty[i].name = facultyNames[i];
+
+        for (int j = 0; j < 3; j++)
+        {
+            faculty[i].room[j] = facultyRooms[i][j];
+            faculty[i].time[j] = facultyTimes[i][j];
+        }
+
+        faculty[i].active = true;
+    }
+
+    facultyCount = 12;
+
+    createCampusGraph();
+
+    int choice;
+
+    do
+    {
+        cout << "\n====================================\n";
+        cout << "       SMART CAMPUS NAVIGATOR\n";
+        cout << "====================================\n";
+
+        cout << "1. Display Buildings and Rooms\n";
+        cout << "2. Search Room\n";
+        cout << "3. Update Building\n";
+        cout << "4. Update Room\n";
+        cout << "5. Insert Building\n";
+        cout << "6. Delete Building\n";
+        cout << "7. Search Faculty\n";
+        cout << "8. Display Faculty\n";
+        cout << "9. Insert Faculty\n";
+        cout << "10. Update Faculty\n";
+        cout << "11. Delete Faculty\n";
+        cout << "12. Building to Building Route\n";
+        cout << "13. Room to Room Route\n";
+        cout << "14. Room to Building Route\n";
+        cout << "15. Building to Room Route\n";
+        cout << "16. Any Location to Any Location\n";
+        cout << "17. Faculty Route\n";
+        cout << "18. Display Linked List\n";
+        cout << "19. Exit\n";
+
+        cout << "\nEnter choice: ";
+
+        if (!(cin >> choice))
+        {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+            cout << "Invalid input.\n";
+            continue;
+        }
+
+        switch (choice)
+        {
+            case 1:
+                displayBuildings();
+                break;
+
+            case 2:
+                searchRoom();
+                break;
+
+            case 3:
+                updateBuilding();
+                break;
+
+            case 4:
+                updateRoom();
+                break;
+
+            case 5:
+                insertBuilding();
+                break;
+
+            case 6:
+                deleteBuilding();
+                break;
+
+            case 7:
+                searchFaculty();
+                break;
+
+            case 8:
+                displayAllFaculty();
+                break;
+
+            case 9:
+                insertFaculty();
+                break;
+
+            case 10:
+                updateFaculty();
+                break;
+
+            case 11:
+                deleteFaculty();
+                break;
+
+            case 12:
+                buildingToBuilding();
+                break;
+
+            case 13:
+                roomToRoom();
+                break;
+
+            case 14:
+                roomToBuilding();
+                break;
+
+            case 15:
+                buildingToRoom();
+                break;
+
+            case 16:
+                routeMenu();
+                break;
+
+            case 17:
+                facultyRoute();
+                break;
+
+            case 18:
+                displayLinkedList();
+                break;
+
+            case 19:
+                cout << "Thank you for using Smart Campus Navigator!\n";
+                break;
+
+            default:
+                cout << "Invalid choice. Enter 1 to 19.\n";
+        }
+
+    } while (choice != 19);
+
+    clearGraph();
+
+    return 0;
+}
