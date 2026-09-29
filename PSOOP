@@ -1,0 +1,413 @@
+/*
+ * ============================================================
+ * VIRTUAL CAMPUS NAVIGATION SYSTEM
+ *
+ * CO1:
+ * Control statements, looping, array, StringBuilder,
+ * StringBuffer, objects and methods.
+ *
+ * CO2:
+ * Lambda expression, inheritance, polymorphism,
+ * abstract class, interface, static, final and super.
+ * ============================================================
+ */
+
+public class CampusNavigation {
+
+    public static void main(String[] args) {
+
+        System.out.println("==========================================");
+        System.out.println("     VIRTUAL CAMPUS NAVIGATION SYSTEM");
+        System.out.println("==========================================");
+
+        // ----------------------------------------------------
+        // CO1: ARRAY + OBJECTS
+        // ----------------------------------------------------
+
+        Location[] locations = {
+            new Location("MG", "Main Gate", "Entrance"),
+            new Location("LIB", "Central Library", "Library"),
+            new Location("CL", "Computer Lab", "Laboratory"),
+            new Location("CAN", "Canteen", "Food Facility")
+        };
+
+        displayLocations(locations);
+
+        // ----------------------------------------------------
+        // CO1: SEARCH USING LOOP + CONTROL STATEMENT
+        // ----------------------------------------------------
+
+        searchLocation(locations, "Computer Lab");
+
+        // ----------------------------------------------------
+        // CO1: StringBuilder
+        // ----------------------------------------------------
+
+        StringBuilder route = new StringBuilder();
+
+        route.append("Main Gate");
+        route.append(" -> Central Library");
+        route.append(" -> Computer Lab");
+
+        System.out.println("\n--- ROUTE ---");
+        System.out.println(route);
+
+        // ----------------------------------------------------
+        // CO1: StringBuffer
+        // ----------------------------------------------------
+
+        StringBuffer message = new StringBuffer();
+
+        message.append("Navigation completed. ");
+        message.append("Total stops: 3");
+
+        System.out.println("\n--- MESSAGE ---");
+        System.out.println(message);
+
+        // ----------------------------------------------------
+        // CO2: INHERITANCE + POLYMORPHISM
+        // ----------------------------------------------------
+
+        CampusUser[] users = {
+            new Student("S101", "Rahul", "Computer Engineering"),
+            new Faculty("F101", "Dr. Sharma", "Computer Engineering")
+        };
+
+        System.out.println("\n--- CAMPUS USERS ---");
+
+        for (CampusUser user : users) {
+
+            user.displayInfo();
+
+            // Polymorphic method call
+            user.navigate();
+        }
+
+        // ----------------------------------------------------
+        // CO2: INTERFACE
+        // ----------------------------------------------------
+
+        Searchable studentSearch =
+                new Student("S102", "Priya", "Electronics");
+
+        System.out.println("\n--- SEARCH INTERFACE ---");
+
+        studentSearch.search("Central Library");
+
+        // ----------------------------------------------------
+        // CO2: LAMBDA EXPRESSION
+        // ----------------------------------------------------
+
+        System.out.println("\n--- LAMBDA NAVIGATION ---");
+
+        NavigationAction navigation =
+                (from, to) ->
+                    System.out.println(
+                        "Navigating from "
+                        + from
+                        + " to "
+                        + to
+                    );
+
+        navigation.navigate(
+            "Main Gate",
+            "Computer Lab"
+        );
+
+        // ----------------------------------------------------
+        // CO2: STATIC
+        // ----------------------------------------------------
+
+        System.out.println("\n--- SYSTEM INFORMATION ---");
+
+        CampusUtility.showSystemName();
+
+        System.out.println(
+            "Total Users Created: "
+            + CampusUser.getUserCount()
+        );
+
+        // ----------------------------------------------------
+        // CO2: FINAL METHOD
+        // ----------------------------------------------------
+
+        System.out.println("\n--- CAMPUS RULE ---");
+
+        users[0].showCampusRule();
+
+        System.out.println("\n==========================================");
+        System.out.println("       CO1 + CO2 EXECUTION COMPLETED");
+        System.out.println("==========================================");
+    }
+
+    // ========================================================
+    // CO1: METHOD + LOOPING + CONTROL STATEMENT
+    // ========================================================
+
+    public static void displayLocations(
+            Location[] locations) {
+
+        System.out.println("\n--- CAMPUS LOCATIONS ---");
+
+        for (int i = 0; i < locations.length; i++) {
+
+            System.out.println(
+                (i + 1) + ". "
+                + locations[i].getName()
+                + " - "
+                + locations[i].getType()
+            );
+        }
+    }
+
+    // ========================================================
+    // CO1: SEARCH METHOD + LOOP + IF
+    // ========================================================
+
+    public static void searchLocation(
+            Location[] locations,
+            String name) {
+
+        System.out.println("\n--- LOCATION SEARCH ---");
+
+        boolean found = false;
+
+        for (Location location : locations) {
+
+            if (location.getName().equalsIgnoreCase(name)) {
+
+                System.out.println(
+                    "Location Found: "
+                    + location.getName()
+                );
+
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            System.out.println("Location Not Found.");
+        }
+    }
+}
+
+/*
+ * ============================================================
+ * CO1: LOCATION OBJECT
+ * ============================================================
+ */
+
+class Location {
+
+    private final String id;
+    private final String name;
+    private final String type;
+
+    public Location(
+            String id,
+            String name,
+            String type) {
+
+        this.id = id;
+        this.name = name;
+        this.type = type;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getType() {
+        return type;
+    }
+}
+
+/*
+ * ============================================================
+ * CO2: ABSTRACT CLASS
+ *
+ * Provides common structure for campus users.
+ * ============================================================
+ */
+
+abstract class CampusUser {
+
+    protected final String id;
+    protected final String name;
+
+    // CO2: static shared variable
+    private static int userCount = 0;
+
+    public CampusUser(
+            String id,
+            String name) {
+
+        this.id = id;
+        this.name = name;
+
+        userCount++;
+    }
+
+    // CO2: abstract method
+    abstract void navigate();
+
+    // Common method
+    public void displayInfo() {
+
+        System.out.println(
+            "ID: " + id
+            + " | Name: " + name
+        );
+    }
+
+    // CO2: static method
+    public static int getUserCount() {
+        return userCount;
+    }
+
+    // CO2: final method
+    public final void showCampusRule() {
+
+        System.out.println(
+            "Rule: Follow designated campus paths."
+        );
+    }
+}
+
+/*
+ * ============================================================
+ * CO2: INHERITANCE + INTERFACE
+ * ============================================================
+ */
+
+class Student extends CampusUser
+        implements Searchable {
+
+    private final String department;
+
+    public Student(
+            String id,
+            String name,
+            String department) {
+
+        // CO2: super
+        super(id, name);
+
+        this.department = department;
+    }
+
+    // CO2: POLYMORPHISM
+    @Override
+    void navigate() {
+
+        System.out.println(
+            "Student: Using regular campus route."
+        );
+    }
+
+    @Override
+    public void displayInfo() {
+
+        super.displayInfo();
+
+        System.out.println(
+            "Department: " + department
+        );
+    }
+
+    // CO2: INTERFACE implementation
+    @Override
+    public void search(String location) {
+
+        System.out.println(
+            "Student searching: " + location
+        );
+    }
+}
+
+/*
+ * ============================================================
+ * CO2: INHERITANCE + POLYMORPHISM
+ * ============================================================
+ */
+
+class Faculty extends CampusUser {
+
+    private final String department;
+
+    public Faculty(
+            String id,
+            String name,
+            String department) {
+
+        // CO2: super
+        super(id, name);
+
+        this.department = department;
+    }
+
+    // CO2: POLYMORPHISM
+    @Override
+    void navigate() {
+
+        System.out.println(
+            "Faculty: Using faculty navigation route."
+        );
+    }
+
+    @Override
+    public void displayInfo() {
+
+        super.displayInfo();
+
+        System.out.println(
+            "Department: " + department
+        );
+    }
+}
+
+/*
+ * ============================================================
+ * CO2: INTERFACE
+ * ============================================================
+ */
+
+interface Searchable {
+
+    void search(String location);
+}
+
+/*
+ * ============================================================
+ * CO2: FUNCTIONAL INTERFACE
+ *
+ * Used for Lambda Expression.
+ * ============================================================
+ */
+
+@FunctionalInterface
+interface NavigationAction {
+
+    void navigate(String from, String to);
+}
+
+/*
+ * ============================================================
+ * CO2: STATIC + FINAL
+ * ============================================================
+ */
+
+class CampusUtility {
+
+    private static final String SYSTEM_NAME =
+        "Virtual Campus Navigation System";
+
+    public static void showSystemName() {
+
+        System.out.println(
+            "System: " + SYSTEM_NAME
+        );
+    }
+}
+
