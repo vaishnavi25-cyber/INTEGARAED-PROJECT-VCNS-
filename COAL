@@ -1,0 +1,229 @@
+Smart Campus Navigation System — Merged COA CO1 + CO2 Code
+; Smart Campus Navigation System - Combined CO1 + CO2 Demonstration
+; Target: NASM x86-64, Linux (works in an online NASM/Linux compiler)
+; CO1: conceptual processor-level model using simulated registers stored in memory.
+; CO2: real x86-64 register operations, arithmetic, comparison, and conditional branching.
+; Example route data:	
+; Route A = 45 m + 35 m = 80 m
+; Route B = 60 m	
+; Walking speed = 60 metres per minute
+;
+; Build on Linux:
+;   nasm -f elf64 Smart_Campus_Navigation_CO1_CO2_Combined.asm -o campus.o
+;   ld campus.o -o campus
+;   ./campus
+ 
+global _start
+ 
+section .data
+    title       db 10, "SMART CAMPUS NAVIGATION - CO1 + CO2", 10
+    title_len   equ $ - title
+    co1_title   db 10, "[CO1] Processor-level model (simulated registers)", 10
+    co1_title_len equ $ - co1_title
+    co1_trace   db "Model trace: LOAD -> ADD -> DIV -> STORE", 10
+    co1_trace_len equ $ - co1_trace
+    route_a_msg db "CO1 Route A distance (m): "
+    route_a_msg_len equ $ - route_a_msg
+    route_b_msg db "CO1 Route B distance (m): "
+    route_b_msg_len equ $ - route_b_msg
+    eta_a_msg   db "CO1 Route A ETA (whole minutes): "
+    eta_a_msg_len equ $ - eta_a_msg
+    eta_b_msg   db "CO1 Route B ETA (whole minutes): "
+    eta_b_msg_len equ $ - eta_b_msg
+ 
+    co2_title   db 10, "[CO2] Native x86-64 assembly operations", 10
+    co2_title_len equ $ - co2_title
+    co2_trace   db "Instructions demonstrated: MOV, ADD, DIV, IMUL, CMP, JB, JMP", 10
+    co2_trace_len equ $ - co2_trace
+    compare_msg db "Shorter route: "
+    compare_msg_len equ $ - compare_msg
+    route_a_txt db "Route A (80 m)", 10
+    route_a_txt_len equ $ - route_a_txt
+    route_b_txt db "Route B (60 m)", 10
+    route_b_txt_len equ $ - route_b_txt
+    eta_msg     db "ETA at 60 m/min: Route A = 1 min 20 sec; Route B = 1 min 0 sec", 10
+    eta_msg_len equ $ - eta_msg
+    newline     db 10
+    newline_len equ $ - newline
+ 
+section .bss
+    ; CO1's conceptual register bank (memory variables standing in for registers)
+    sim_R1      resq 1        ; Route A segment 1
+    sim_R2      resq 1        ; Route A segment 2
+    sim_R3      resq 1        ; Route A total distance
+    sim_R4      resq 1        ; Route B total distance
+    sim_R5      resq 1        ; walking speed
+    sim_R6      resq 1        ; Route A whole-minute ETA
+    sim_R7      resq 1        ; Route B whole-minute ETA
+    num_buffer  resb 32
+ 
+section .text
+_start:
+    ; ---------------- CO1: conceptual processor-level model ----------------
+    mov rsi, title
+    mov rdx, title_len
+    call print_string
+ 
+    mov rsi, co1_title
+    mov rdx, co1_title_len
+    call print_string
+    mov rsi, co1_trace
+    mov rdx, co1_trace_len
+    call print_string
+ 
+    ; Simulated registers are represented by named memory slots.
+    mov qword [sim_R1], 45
+    mov qword [sim_R2], 35
+    mov qword [sim_R4], 60
+    mov qword [sim_R5], 60
+ 
+    ; Conceptual ALU ADD: Route A = R1 + R2
+    mov rax, [sim_R1]
+    add rax, [sim_R2]
+    mov [sim_R3], rax
+ 
+    ; Conceptual integer DIV: ETA (whole minutes) = distance / speed
+    xor rdx, rdx
+    mov rax, [sim_R3]
+    div qword [sim_R5]
+    mov [sim_R6], rax
+ 
+    xor rdx, rdx
+    mov rax, [sim_R4]
+    div qword [sim_R5]
+    mov [sim_R7], rax
+ 
+    mov rsi, route_a_msg
+    mov rdx, route_a_msg_len
+    call print_string
+    mov rax, [sim_R3]
+    call print_uint
+    call print_newline
+ 
+    mov rsi, route_b_msg
+    mov rdx, route_b_msg_len
+    call print_string
+    mov rax, [sim_R4]
+    call print_uint
+    call print_newline
+ 
+    mov rsi, eta_a_msg
+    mov rdx, eta_a_msg_len
+    call print_string
+    mov rax, [sim_R6]
+    call print_uint
+    call print_newline
+ 
+    mov rsi, eta_b_msg
+    mov rdx, eta_b_msg_len
+    call print_string
+    mov rax, [sim_R7]
+    call print_uint
+    call print_newline
+ 
+    ; ---------------- CO2: native x86-64 assembly ----------------
+    mov rsi, co2_title
+    mov rdx, co2_title_len
+    call print_string
+    mov rsi, co2_trace
+    mov rdx, co2_trace_len
+    call print_string
+ 
+    ; Native CPU register operations: calculate the two route distances.
+    mov r8, 45
+    mov r9, 35
+    add r8, r9                 ; R8 = Route A distance (80)
+    mov r10, 60                ; Route B distance
+    mov r11, 60                ; walking speed
+ 
+    ; DIV uses RDX:RAX as the dividend and RAX for quotient.
+    xor rdx, rdx
+    mov rax, r8
+    div r11                    ; Route A ETA = 1 whole minute
+    mov r12, rax
+ 
+    xor rdx, rdx
+    mov rax, r10
+    div r11                    ; Route B ETA = 1 whole minute
+    mov r13, rax
+ 
+    ; IMUL demonstrates integer multiplication for the seconds conversion.
+    mov rax, 20
+    imul rax, 1                ; Route A remaining seconds = 20
+ 
+    mov rsi, eta_msg
+    mov rdx, eta_msg_len
+    call print_string
+ 
+    ; Compare route distances and branch to the shorter-route message.
+    cmp r8, r10
+    jb route_a_shorter
+    jmp route_b_shorter
+ 
+route_a_shorter:
+    mov rsi, compare_msg
+    mov rdx, compare_msg_len
+    call print_string
+    mov rsi, route_a_txt
+    mov rdx, route_a_txt_len
+    call print_string
+    jmp exit_program
+ 
+route_b_shorter:
+    mov rsi, compare_msg
+    mov rdx, compare_msg_len
+    call print_string
+    mov rsi, route_b_txt
+    mov rdx, route_b_txt_len
+    call print_string
+    jmp exit_program
+ 
+; Print RSI pointer with RDX byte length to stdout.
+print_string:
+    mov rax, 1                 ; Linux sys_write
+    mov rdi, 1                 ; stdout
+    syscall
+    ret
+ 
+print_newline:
+    mov rsi, newline
+    mov rdx, newline_len
+    jmp print_string
+ 
+; Print unsigned integer in RAX followed by no newline.
+print_uint:
+    push rbx
+    push r12
+    push r13
+    lea rsi, [num_buffer + 31]
+    mov byte [rsi], 0
+    mov rbx, 10
+    mov r12, rsi
+    cmp rax, 0
+    jne .convert
+    dec rsi
+    mov byte [rsi], '0'
+    jmp .write
+.convert:
+    xor rdx, rdx
+    div rbx
+    add dl, '0'
+    dec rsi
+    mov [rsi], dl
+    test rax, rax
+    jne .convert
+.write:
+    lea rdx, [num_buffer + 31]
+    sub rdx, rsi
+    mov rax, 1
+    mov rdi, 1
+    syscall
+    pop r13
+    pop r12
+    pop rbx
+    ret
+ 
+exit_program:
+    mov rax, 60                ; Linux sys_exit
+    xor rdi, rdi
+    syscall
