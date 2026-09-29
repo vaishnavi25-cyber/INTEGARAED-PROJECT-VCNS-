@@ -1,0 +1,24 @@
+┌───────────────────────────────────────────────────────────────┐
+│                      1. PRESENTATION LAYER                     │
+│                Computer Graphics — OpenGL / GLUT                │
+│   Static campus map: buildings, rooms, gate, connections (CO1) │
+│      Pan / rotate / zoom + faculty overlay panel (CO2)         │
+└──────────────────────────────┬──────────────────────────────────┘
+                                │
+                                ▼
+┌───────────────────────────────────────────────────────────────┐
+│                    2. ROUTING & DATA LAYER                     │
+│                     Data Structures — C++                       │
+│   Arrays: buildings / floors / rooms / faculty directory (CO1) │
+│   Linked-list graph + Dijkstra route + faculty search (CO2)    │
+└───────────────────┬─────────────────────────┬────────────────────┘
+                     │                         │
+                     ▼                         ▼
+┌────────────────────────────────┐ ┌─────────────────────────────────┐
+│   3. ARITHMETIC / COA LAYER     │ │       4. OOP LAYER — Java        │
+│    Assembly — x86-64 NASM       │ │  CampusUser (abstract) → Student,│
+│  FROM/TO held in CPU registers  │ │  Faculty; polymorphic navigate() │
+│  cmp/je distance lookup (CO1)   │ │  interface + lambda search (CO1) │
+│  ETA = distance / 80, div (CO2) │ │  My Timetable upload over        │
+│                                  │ │  HttpServer, static/final (CO2)  │
+└────────────────────────────────┘ └─────────────────────────────────┘
